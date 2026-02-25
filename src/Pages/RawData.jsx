@@ -1,57 +1,73 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "../services/api";
 
 function RawData() {
-  const [data, setData] = useState([]);
+  const [rows, setRows] = useState([]);
   const [topicFilter, setTopicFilter] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
 
   const [page, setPage] = useState(0);
   const limit = 10;
+  const [pageSize, setPageSize] = useState(0);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Reset pagination whenever filters change
   useEffect(() => {
-    let url = "/messages";
+    setPage(0);
+  }, [topicFilter, startTime, endTime]);
 
+  const queryString = useMemo(() => {
     const params = [];
 
-    if (startTime) params.push(`start=${new Date(startTime).toISOString().slice(0,19)}`);
-    if (endTime) params.push(`end=${new Date(endTime).toISOString().slice(0,19)}`);
+    if (topicFilter) params.push(`topic=${encodeURIComponent(topicFilter)}`);
+    if (startTime) params.push(`start=${new Date(startTime).toISOString()}`);
+    if (endTime) params.push(`end=${new Date(endTime).toISOString()}`);
 
-    if (params.length > 0) {
-      url += "?" + params.join("&");
-    }
+    params.push(`limit=${limit}`);
+    params.push(`offset=${page * limit}`);
 
-    API.get(url)
-      .then(res => {
-        if (Array.isArray(res.data)) {
-          setData(res.data);
-          setFilteredData(res.data);
-        } else {
-          console.error("Unexpected response:", res.data);
-          setData([]);
-          setFilteredData([]);
-        }
-      })
-      .catch(err => {
-        console.error("API error:", err);
-        setData([]);
-        setFilteredData([]);
-      });
-  }, [startTime, endTime, page]);
+    return params.length ? `?${params.join("&")}` : "";
+  }, [topicFilter, startTime, endTime, page]);
 
   useEffect(() => {
-    let temp = data;
+    let isMounted = true;
 
-    if (topicFilter) {
-      temp = temp.filter(item =>
-        item.topic?.toLowerCase().includes(topicFilter.toLowerCase())
-      );
-    }
+    const fetchPage = async () => {
+      try {
+        setError("");
+        setLoading(true);
 
-    setFilteredData(temp);
-  }, [topicFilter, data]);
+        const url = `/messages/paginated${queryString}`;
+        const res = await API.get(url);
+
+        const list = Array.isArray(res.data) ? res.data : [];
+        if (!isMounted) return;
+
+        setRows(list);
+        setPageSize(list.length);
+      } catch (err) {
+        console.error("Raw data fetch error:", err);
+        if (!isMounted) return;
+        setRows([]);
+        setPageSize(0);
+        setError("Failed to load raw data. Make sure backend is running and data is being published.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    // Initial fetch + auto-refresh
+    fetchPage();
+    const id = setInterval(fetchPage, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(id);
+    };
+  }, [queryString]);
 
   return (
     <div>
@@ -82,6 +98,16 @@ function RawData() {
         />
       </div>
 
+      {error && (
+        <div style={{ marginBottom: 12, color: "red", fontWeight: 600 }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ marginBottom: 10, color: "#666" }}>
+        {loading ? "Loading…" : ""}
+      </div>
+
       <table border="1" width="100%">
         <thead>
           <tr>
@@ -95,16 +121,16 @@ function RawData() {
           </tr>
         </thead>
         <tbody>
-          {filteredData.length === 0 ? (
+          {rows.length === 0 ? (
             <tr>
               <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
-                No data available
+                {loading ? "Loading…" : "No data available"}
               </td>
             </tr>
           ) : (
-            filteredData.map((d, i) => (
+            rows.map((d, i) => (
               <tr key={i}>
-                <td>{d.topic}</td>
+                <td>{d.topic ?? "--"}</td>
                 <td>{d.data?.temperature ?? "--"}</td>
                 <td>{d.data?.humidity ?? "--"}</td>
                 <td>{d.data?.voltage ?? "--"}</td>
@@ -118,15 +144,19 @@ function RawData() {
       </table>
 
       <div style={{ marginTop: "20px" }}>
-        <button onClick={() => setPage(prev => Math.max(prev - 1, 0))}>
+        <button
+          disabled={page === 0}
+          onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+        >
           Previous
         </button>
 
-        <span style={{ margin: "0 15px" }}>
-          Page {page + 1}
-        </span>
+        <span style={{ margin: "0 15px" }}>Page {page + 1}</span>
 
-        <button onClick={() => setPage(prev => prev + 1)}>
+        <button
+          disabled={pageSize < limit}
+          onClick={() => setPage((prev) => prev + 1)}
+        >
           Next
         </button>
       </div>

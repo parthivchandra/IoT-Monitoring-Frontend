@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./Pages/Dashboard";
 import Alerts from "./Pages/Alerts";
-import RawData from "./pages/RawData";
+import RawData from "./Pages/RawData";
 import Navbar from "./components/layout/Navbar";
 
 function App() {
@@ -13,6 +13,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/raw" element={<RawData />} />
+          <Route path="*" element={<Dashboard />} />
         </Routes>
       </div>
     </BrowserRouter>

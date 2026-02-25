@@ -5,9 +5,21 @@ import "./Alerts.css";
 function Alerts() {
   const [alerts, setAlerts] = useState([]);
 
-  useEffect(() => {
-    API.get("/alerts").then(res => setAlerts(res.data));
-  }, []);
+  const fetchAlerts = async () => {
+    try {
+      const res = await API.get("/alerts");
+      setAlerts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch alerts:", err);
+      setAlerts([]);
+    }
+  };
+
+useEffect(() => {
+  fetchAlerts();
+  const id = setInterval(fetchAlerts, 3000);
+  return () => clearInterval(id);
+}, []);
 
   return (
     <div>
@@ -22,20 +34,20 @@ function Alerts() {
           </tr>
         </thead>
        <tbody>
-  {alerts.map((alert, index) =>
-    alert.alerts.map((param, i) => (
-      <tr key={`${index}-${i}`}>
-        <td>{alert.topic}</td>
-        <td style={{ color: "red" }}>{param}</td>
-        <td>
-          {param === "High Temperature"
-            ? alert.data.temperature
-            : param === "High Humidity"
-            ? alert.data.humidity
-            : "--"}
-        </td>
-        <td>{alert.timestamp}</td>
-      </tr>
+  {alerts.length === 0 ? (
+    <tr>
+      <td colSpan="4">No alerts yet</td>
+    </tr>
+  ) : (
+    alerts.map((alert, index) => (
+      alert.violated_keys.map((param, i) => (
+        <tr key={`${index}-${i}`}>
+          <td>{alert.topic}</td>
+          <td style={{ color: "red", fontWeight: "bold" }}>{param}</td>
+          <td>{alert.data?.[param] ?? "--"}</td>
+          <td>{alert.timestamp}</td>
+        </tr>
+      ))
     ))
   )}
 </tbody>

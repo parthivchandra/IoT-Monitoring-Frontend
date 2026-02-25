@@ -7,9 +7,11 @@ function Dashboard() {
   const [count, setCount] = useState(0);
   const [alerts, setAlerts] = useState([]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+ useEffect(() => {
+  fetchData();
+  const id = setInterval(fetchData, 3000); // refresh every 3s
+  return () => clearInterval(id);
+}, []);
 
   const fetchData = async () => {
     const res1 = await API.get("/latest");
@@ -18,7 +20,7 @@ function Dashboard() {
 
     setLatest(res1.data);
     setCount(res2.data.count);
-    setAlerts(res3.data.slice(0, 5));
+    setAlerts(Array.isArray(res3.data) ? res3.data.slice(0, 5) : []);
   };
 
   return (
@@ -60,7 +62,9 @@ function Dashboard() {
           alerts.map((alert, i) => (
             <div key={i} className="alert-item">
               <strong>{alert.topic}</strong>
-              <p>{alert.alerts.join(", ")}</p>
+              <p style={{ color: "red", fontWeight: "bold" }}>
+                {(alert.violated_keys || []).join(", ")}
+              </p>
               <small>{alert.timestamp}</small>
             </div>
           ))
