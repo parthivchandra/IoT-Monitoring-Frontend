@@ -1,0 +1,53 @@
+.dashboard {
+  padding: 30px;
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  min-height: 100vh;
+}
+
+h1 {
+  margin-bottom: 25px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  text-align: center;
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.card p {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Color Themes */
+.temperature { border-top: 4px solid #ff4d4f; }
+.humidity { border-top: 4px solid #1890ff; }
+.voltage { border-top: 4px solid #52c41a; }
+.total { border-top: 4px solid #722ed1; }
+.alerts { border-top: 4px solid #fa8c16; }
+
+.alerts-section {
+  margin-top: 40px;
+}
+
+.alert-item {
+  background: #fff1f0;
+  padding: 15px;
+  border-left: 4px solid #ff4d4f;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
